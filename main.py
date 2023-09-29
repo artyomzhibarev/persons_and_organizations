@@ -1,9 +1,9 @@
 import os
 from datetime import datetime
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator, Optional, Any
 
 import uvicorn
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 from sqlalchemy import MetaData, DateTime, func, String, ARRAY, select
@@ -82,7 +82,7 @@ class PersonSchema(BaseModel):
     identifier_id: str
 
 
-class OrganizationResponseModel(BaseModel):
+class ResponseModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
@@ -101,13 +101,16 @@ class Service:
         cls,
         session: AsyncSession,
         organization_id: str
-    ) -> Organization | None:
+    ) -> dict[Any, Any] | Organization:
         stmt = select(Organization).where(
             Organization.identifier_id == organization_id
         ).options(joinedload(Organization.persons))
 
         res = await session.execute(stmt)
-        result = res.unique().scalar()
+        result = res.unique().scalar_one_or_none()
+
+        if result is None:
+            raise HTTPException(status_code=404, detail="Item not found")
 
         return result
 
@@ -115,7 +118,7 @@ class Service:
 app = FastAPI()
 
 
-@app.post('/get_organization_by_id', response_model=OrganizationResponseModel)
+@app.post('/get_organization_by_id', response_model=ResponseModel)
 async def get_organization_by_id(
     request_schema: RequestSchema,
     session: AsyncSession = Depends(get_session),
