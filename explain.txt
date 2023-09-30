@@ -1,0 +1,8 @@
+Nested Loop Left Join  (cost=0.85..45.11 rows=8 width=321) (actual time=0.578..0.619 rows=5 loops=1)
+  Join Filter: ((organizations.identifier_id)::text = (persons_1.identifier_id)::text)
+  ->  Index Scan using ix_custom_schema_organizations_identifier_id on organizations  (cost=0.42..8.44 rows=1 width=101) (actual time=0.415..0.451 rows=1 loops=1)
+        Index Cond: ((identifier_id)::text = 'kLn-557-gfqxGBb'::text)
+  ->  Index Scan using ix_custom_schema_persons_identifier_id on persons persons_1  (cost=0.43..36.57 rows=8 width=220) (actual time=0.151..0.153 rows=5 loops=1)
+        Index Cond: ((identifier_id)::text = 'kLn-557-gfqxGBb'::text)
+Planning Time: 0.607 ms
+Execution Time: 0.768 ms

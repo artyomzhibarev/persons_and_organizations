@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings
 from sqlalchemy import MetaData, DateTime, func, String, ARRAY, select
 from sqlalchemy.ext.asyncio import (async_sessionmaker, create_async_engine,
-                                    AsyncSession)
+                                    AsyncSession, AsyncEngine)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, \
     relationship, joinedload
 
@@ -19,16 +19,21 @@ class Settings(BaseSettings):
         "postgresql+asyncpg://postgres:postgres@localhost:5432"
     )
     DB_SCHEMA: str = 'custom_schema'
+    DB_ECHO: bool = True
 
 
 settings = Settings.model_validate({})
 
-engine = create_async_engine(settings.DB_URL, echo=True)
+
+def _create_async_engine() -> AsyncEngine:
+    return create_async_engine(settings.DB_URL, echo=settings.DB_ECHO)
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
     async_session = async_sessionmaker(
-        bind=engine, class_=AsyncSession, expire_on_commit=False
+        bind=_create_async_engine(),
+        class_=AsyncSession,
+        expire_on_commit=False
     )
     async with async_session() as session:
         yield session
@@ -79,13 +84,13 @@ class PersonSchema(BaseModel):
     name: str
     created_at: datetime
     features: Optional[list[str]]
-    identifier_id: str
 
 
 class ResponseModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str
+    identifier_id: str
     telephone_numbers: Optional[list[str]]
     persons: Optional[list[PersonSchema]] = []
 
